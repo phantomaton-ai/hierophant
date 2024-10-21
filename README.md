@@ -24,24 +24,33 @@ Hierophant builds upon the core concepts introduced in the `sigil` dependency in
 
 ## Usage 🪄
 
-To use Hierophant, you'll first need to import the `container` function:
+To use Hierophant, first import the `hierophant` function:
 
 ```javascript
-import { container } from 'hierophant';
+import hierophant from 'hierophant';
 ```
 
-Then, you can register and resolve components using the `register` and `resolve` methods:
+Then, create a new container instance with any desired options:
 
 ```javascript
-const chat = container('chat');
+const container = hierophant({
+  name: 'chat',
+  plugins: [
+    // Add any plugins here
+  ]
+});
+```
 
-chat.register('logger', () => console.log);
-chat.register('bot', ['logger'], (logger) => (message) => {
+You can now register and resolve components using the container:
+
+```javascript
+container.register('logger', () => console.log);
+container.register('bot', ['logger'], (logger) => (message) => {
   logger('Received message:', message);
   // Implement chatbot logic here
 });
 
-const bot = chat.resolve('bot');
+const bot = container.resolve('bot');
 bot('Hello, how are you?');
 ```
 
