@@ -37,7 +37,7 @@ describe('Hierophant', () => {
 
     expect(console.log.callCount).to.eq(1);
     expect(console.log.lastCall.args).to.deep.eq([['Hello', 'World']]);
-    expect(result).to.equal('I don't know what you said, but there were 2 messages.');
+    expect(result).to.equal("I don't know what you said, but there were 2 messages.");
   });
 
   it('should allow registering and resolving a decorated provider', () => {
@@ -60,7 +60,7 @@ describe('Hierophant', () => {
     expect(console.log.callCount).to.eq(2);
     expect(console.log.firstCall.args).to.deep.eq(['Calling anonymous', ['Hello', 'World']]);
     expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
-    expect(result).to.equal('I don't know what you said, but there were 2 messages.');
+    expect(result).to.equal("I don't know what you said, but there were 2 messages.");
   });
 
   it('should allow registering and resolving an aggregated provider', () => {
@@ -83,7 +83,7 @@ describe('Hierophant', () => {
 
     expect(console.log.callCount).to.eq(1);
     expect(console.log.lastCall.args).to.deep.eq([['Hello', 'World']]);
-    expect(result).to.equal('I don't know what you said, but there were 2 messages. | I don't know what you said, but there were 2 messages.');
+    expect(result).to.equal("I don't know what you said, but there were 2 messages. | I don't know what you said, but there were 2 messages.");
   });
 
   it('should allow installing providers, decorators, and aggregators', () => {
@@ -118,6 +118,6 @@ describe('Hierophant', () => {
     expect(console.log.callCount).to.eq(2);
     expect(console.log.firstCall.args).to.deep.eq(['Calling anonymous', ['Hello', 'World']]);
     expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
-    expect(result).to.equal('I don't know what you said, but there were 2 messages. | I don't know what you said, but there were 2 messages.');
+    expect(result).to.equal("I don't know what you said, but there were 2 messages. | I don't know what you said, but there were 2 messages.");
   });
 });
