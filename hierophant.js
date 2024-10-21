@@ -1,7 +1,7 @@
 const one = symbol => providers => {
   if (providers.length < 1) throw new Error(`No providers for ${symbol}`);
   if (providers.length > 1) throw new Error(`Too many providers for ${symbol}`);
-  return providers[0];
+  return providers[0]();
 };
 
 class Hierophant {
