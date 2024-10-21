@@ -15,12 +15,13 @@ By abstracting the dependency management into Hierophant, Phantomaton can focus 
 
 ## Core Concepts 🔮
 
-Hierophant builds upon the core concepts introduced in the `sigil` dependency injection framework:
+Hierophant provides the following core functionality:
 
-1. **Containers**: Top-level entities that hold registered components and their dependencies.
-2. **Components**: Individual modules, classes, or functions that can be injected as dependencies.
-3. **Injectors**: Functions that resolve and inject dependencies into components.
-4. **Sigils**: Identifiers used to register and reference components within a container.
+1. **Providers**: Specific implementations that can be swapped in and out.
+2. **Aggregators**: Strategies for dealing with multiple providers (e.g., raising errors for singletons, fan-out/fan-in for combining results).
+3. **Decorators**: Wrappers that modify the behavior of other components by intercepting calls and potentially modifying inputs and outputs.
+
+These concepts are defined and registered using `Symbol`s as identifiers, providing a flexible and extensible architecture.
 
 ## Usage 🪄
 
@@ -30,53 +31,30 @@ To use Hierophant, first import the `hierophant` function:
 import hierophant from 'hierophant';
 ```
 
-Then, create a new container instance with any desired options:
+Then, create a new Hierophant instance and use its methods to manage providers, aggregators, and decorators:
 
 ```javascript
-const container = hierophant({
-  name: 'chat'
+const container = hierophant();
+
+// Define a 'converse' extension point
+const converse = Symbol('converse');
+
+// Register a provider for the 'converse' extension point
+container.provide(converse, (log) => (messages) => {
+  log(messages);
+  return `I don't know what you said, but there were ${messages.length} messages.`;
 });
-```
 
-### Defining Extension Points 🌟
+// Register a decorator for the 'converse' extension point
+const logging = (log) => (fn) => (...args) => {
+  log(fn.name, ...args);
+  return fn(...args);
+};
+container.decorate(converse, container.depend([log], logging));
 
-Hierophant allows you to define new extension points, which can be thought of as interfaces or abstractions that can be implemented by various components:
-
-```javascript
-const Greeter = container.define('greeter');
-
-Greeter.register('basic', (name) => `Hello, ${name}!`);
-Greeter.register('formal', (name) => `Greetings, ${name}.`);
-```
-
-### Implementing Extension Points 🔧
-
-Components can then implement the defined extension points:
-
-```javascript
-class User {
-  greet(name) {
-    return Greeter.using(this).upon(name);
-  }
-}
-
-class Admin extends User {
-  greet(name) {
-    return Greeter.as(Admin).using(this).upon(name);
-  }
-}
-```
-
-### Resolving Extension Points 🔍
-
-The container can then be used to resolve the appropriate implementation of an extension point:
-
-```javascript
-const user = new User();
-console.log(user.greet('Alice')); // Output: "Hello, Alice!"
-
-const admin = new Admin();
-console.log(admin.greet('Bob')); // Output: "Greetings, Bob."
+// Resolve the 'converse' extension point
+const converseFn = container.resolve(converse);
+console.log(converseFn(['Hello', 'World']));
 ```
 
 ## Contributing 🦄
