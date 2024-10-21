@@ -34,24 +34,49 @@ Then, create a new container instance with any desired options:
 
 ```javascript
 const container = hierophant({
-  name: 'chat',
-  plugins: [
-    // Add any plugins here
-  ]
+  name: 'chat'
 });
 ```
 
-You can now register and resolve components using the container:
+### Defining Extension Points 🌟
+
+Hierophant allows you to define new extension points, which can be thought of as interfaces or abstractions that can be implemented by various components:
 
 ```javascript
-container.register('logger', () => console.log);
-container.register('bot', ['logger'], (logger) => (message) => {
-  logger('Received message:', message);
-  // Implement chatbot logic here
-});
+const Greeter = container.define('greeter');
 
-const bot = container.resolve('bot');
-bot('Hello, how are you?');
+Greeter.register('basic', (name) => `Hello, ${name}!`);
+Greeter.register('formal', (name) => `Greetings, ${name}.`);
+```
+
+### Implementing Extension Points 🔧
+
+Components can then implement the defined extension points:
+
+```javascript
+class User {
+  greet(name) {
+    return Greeter.using(this).upon(name);
+  }
+}
+
+class Admin extends User {
+  greet(name) {
+    return Greeter.as(Admin).using(this).upon(name);
+  }
+}
+```
+
+### Resolving Extension Points 🔍
+
+The container can then be used to resolve the appropriate implementation of an extension point:
+
+```javascript
+const user = new User();
+console.log(user.greet('Alice')); // Output: "Hello, Alice!"
+
+const admin = new Admin();
+console.log(admin.greet('Bob')); // Output: "Greetings, Bob."
 ```
 
 ## Contributing 🦄
