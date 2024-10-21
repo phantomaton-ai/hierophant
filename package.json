@@ -1,16 +1,19 @@
 {
   "name": "hierophant",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "hierophant.js",  
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "all": "lovecraft -a",
+    "cov": "lovecraft -c",
+    "lint": "lovecraft -l",
+    "test": "lovecraft"
   },
+  "type": "module",
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Phantomaton",
+  "license": "MIT",
   "description": "",
-  "dependencies": {
-    "chai": "^5.1.1",
-    "mocha": "^10.7.3"
+  "devDependencies": {
+    "lovecraft": "^1.0.2"
   }
 }
