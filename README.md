@@ -20,7 +20,7 @@ Hierophant builds upon the core concepts introduced in the `sigil` dependency in
 1. **Containers**: Top-level entities that hold registered components and their dependencies.
 2. **Components**: Individual modules, classes, or functions that can be injected as dependencies.
 3. **Injectors**: Functions that resolve and inject dependencies into components.
-4. **Tokens**: Identifiers used to register and reference components within a container.
+4. **Sigils**: Identifiers used to register and reference components within a container.
 
 ## Usage 🪄
 
@@ -33,16 +33,16 @@ import { container } from 'hierophant';
 Then, you can register and resolve components using the `register` and `resolve` methods:
 
 ```javascript
-const conversationContainer = container('conversation');
+const chat = container('chat');
 
-conversationContainer.register('logger', () => console.log);
-conversationContainer.register('chatbot', ['logger'], (logger) => (messages) => {
-  logger('Received messages:', messages);
+chat.register('logger', () => console.log);
+chat.register('bot', ['logger'], (logger) => (message) => {
+  logger('Received message:', message);
   // Implement chatbot logic here
 });
 
-const chatbot = conversationContainer.resolve('chatbot');
-chatbot(['Hello, how are you?']);
+const bot = chat.resolve('bot');
+bot('Hello, how are you?');
 ```
 
 ## Contributing 🦄
