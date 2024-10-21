@@ -6,9 +6,7 @@ const one = symbol => providers => {
 
 class Hierophant {
   constructor() {
-    providers = {};
-    aggregators = {};
-    decorators = {};
+    ['providers', 'aggregators', 'decorators'].forEach(k => this[k] = {});
   }
 
   learn(symbol) {
