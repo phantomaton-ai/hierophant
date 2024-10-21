@@ -23,14 +23,14 @@ const fn = (log) => (messages) => {
   return `I don't know what you said, but there were ${messages.length} messages.`;
 }
 
-container.provide(converse, container.injectable([log], fn));
+container.provide(converse, container.depend([log], fn));
 
 // ...or
 const logging = log => fn => (...args) => {
   log(fn.name, ...args);
   return fn(...args);
 };
-container.decorate(converse, container.injectable([log], logging));
+container.decorate(converse, container.depend([log], logging));
 
 // Also
 container.aggregate(converse, ...);

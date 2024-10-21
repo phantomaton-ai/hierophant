@@ -41,6 +41,25 @@ class Hierophant {
       aggregated
     );
   }
+
+  depend(symbols, factory) {
+    return () => {
+      const dependencies = symbols.map(symbol => this.resolve(symbol));
+      return factory(...dependencies);
+    }
+  }
+
+  install({ providers, aggregators, decorators }) {
+    providers.forEach(({ symbol, dependencies, factory }) => {
+      this.provide(symbol, this.depend(dependencies, factory));
+    });
+    aggregators.forEach(({ symbol, dependencies, factory }) => {
+      this.aggregate(symbol, this.depend(dependencies, factory));
+    });
+    decorators.forEach(({ symbol, dependencies, factory }) => {
+      this.decorate(symbol, this.depend(dependencies, factory));
+    });
+  }
 }
 
 const hierophant = () => new Hierophant();
