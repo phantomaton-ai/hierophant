@@ -1,4 +1,4 @@
-const one = symbol => providers => {
+const one = symbol => () => providers => {
   if (providers.length < 1) throw new Error(`No providers for ${symbol}`);
   if (providers.length > 1) throw new Error(`Too many providers for ${symbol}`);
   return providers[0]();
@@ -32,7 +32,7 @@ class Hierophant {
 
   resolve(symbol) {
     this.learn(symbol);
-    const aggregate = this.aggregators[symbol];
+    const aggregate = this.aggregators[symbol]();
     const aggregated = aggregate(this.providers[symbol]);
     return this.decorators[symbol].reduce(
       (fn, decorate) => decorate()(fn),

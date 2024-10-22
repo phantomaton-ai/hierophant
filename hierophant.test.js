@@ -65,24 +65,20 @@ describe('Hierophant', () => {
 
   it('should allow registering and resolving an aggregated provider', () => {
     const container = hierophant();
-    container.provide(log, () => (...args) => console.log(...args));
-    container.provide(converse, container.depend([log], (logger) => (messages) => {
-      logger(messages);
-      return `I don't know what you said, but there were ${messages.length} messages.`;
-    }));
+    container.provide(converse, () => (messages) =>
+      `I don't know what you said, but there were ${messages.length} messages.`
+    );
+    container.provide(converse, () => (messages) =>
+      `The last message was ${messages[messages.length - 1]}.`
+    );
 
-    const aggregator = (providers) => (messages) => {
-      return providers.reduce((result, provider) => {
-        return `${result} | ${provider(messages)}`;
-      }, '');
-    };
-    container.aggregate(converse, container.depend([converse], aggregator));
+    const aggregator = (providers) => (messages) =>
+      providers.map(provider => provider()(messages)).join(' | ');
+    container.aggregate(converse, () => aggregator);
 
     const converseFn = container.resolve(converse);
     const result = converseFn(['Hello', 'World']);
 
-    expect(console.log.callCount).to.eq(1);
-    expect(console.log.lastCall.args).to.deep.eq([['Hello', 'World']]);
-    expect(result).to.equal("I don't know what you said, but there were 2 messages. | I don't know what you said, but there were 2 messages.");
+    expect(result).to.equal("I don't know what you said, but there were 2 messages. | The last message was World.");
   });
 });
