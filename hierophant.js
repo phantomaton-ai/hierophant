@@ -1,6 +1,6 @@
 const one = symbol => () => providers => {
-  if (providers.length < 1) throw new Error(`No providers for ${symbol}`);
-  if (providers.length > 1) throw new Error(`Too many providers for ${symbol}`);
+  if (providers.length < 1) throw new Error(`No providers for ${symbol.description}`);
+  if (providers.length > 1) throw new Error(`Too many providers for ${symbol.description}`);
   return providers[0]();
 };
 

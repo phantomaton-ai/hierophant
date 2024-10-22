@@ -117,4 +117,16 @@ describe('Hierophant', () => {
     expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
     expect(result).to.equal("I don't know what you said, but there were 2 messages. | The last message was World.");
   });
+
+  it('should throw an error when no providers are registered for a symbol', () => {
+    const container = hierophant();
+    expect(() => container.resolve(converse)).to.throw(Error, `No providers for converse`);
+  });
+
+  it('should throw an error when multiple providers are registered for a symbol', () => {
+    const container = hierophant();
+    container.provide(converse, () => (messages) => 'Provider 1');
+    container.provide(converse, () => (messages) => 'Provider 2');
+    expect(() => container.resolve(converse)).to.throw(Error, `Too many providers for converse`);
+  });
 });
