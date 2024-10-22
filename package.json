@@ -8,6 +8,10 @@
     "lint": "lovecraft -l",
     "test": "lovecraft"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/phantomaton-ai/hierophant.git"
+  },
   "type": "module",
   "keywords": [],
   "author": "Phantomaton",
