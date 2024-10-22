@@ -47,7 +47,7 @@ class Hierophant {
     };
   }
 
-  install({ providers, aggregators, decorators }) {
+  install({ providers = [], aggregators = [], decorators = []}) {
     providers.forEach(({ symbol, dependencies, factory }) => {
       this.provide(symbol, this.depend(dependencies, factory));
     });
