@@ -44,7 +44,7 @@ class Hierophant {
     return () => {
       const dependencies = symbols.map(symbol => this.resolve(symbol));
       return factory(...dependencies);
-    }
+    };
   }
 
   install({ providers, aggregators, decorators }) {
