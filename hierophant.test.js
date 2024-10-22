@@ -62,4 +62,27 @@ describe('Hierophant', () => {
     expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
     expect(result).to.equal("I don't know what you said, but there were 2 messages.");
   });
+
+  it('should allow registering and resolving an aggregated provider', () => {
+    const container = hierophant();
+    container.provide(log, () => (...args) => console.log(...args));
+    container.provide(converse, container.depend([log], (logger) => (messages) => {
+      logger(messages);
+      return `I don't know what you said, but there were ${messages.length} messages.`;
+    }));
+
+    const aggregator = (providers) => (messages) => {
+      return providers.reduce((result, provider) => {
+        return `${result} | ${provider(messages)}`;
+      }, '');
+    };
+    container.aggregate(converse, container.depend([converse], aggregator));
+
+    const converseFn = container.resolve(converse);
+    const result = converseFn(['Hello', 'World']);
+
+    expect(console.log.callCount).to.eq(1);
+    expect(console.log.lastCall.args).to.deep.eq([['Hello', 'World']]);
+    expect(result).to.equal("I don't know what you said, but there were 2 messages. | I don't know what you said, but there were 2 messages.");
+  });
 });
