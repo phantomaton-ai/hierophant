@@ -31,30 +31,93 @@ To use Hierophant, first import the `hierophant` function:
 import hierophant from 'hierophant';
 ```
 
-Then, create a new Hierophant instance and use its methods to manage providers, aggregators, and decorators:
+Then, create a new Hierophant instance:
 
 ```javascript
 const container = hierophant();
+```
 
-// Define a 'converse' extension point
-const converse = Symbol('converse');
+### Defining Providers 🌟
 
-// Register a provider for the 'converse' extension point
-container.provide(converse, (log) => (messages) => {
-  log(messages);
-  return `I don't know what you said, but there were ${messages.length} messages.`;
-});
+You can register a provider using the `provide` method:
 
-// Register a decorator for the 'converse' extension point
+```javascript
+const log = Symbol('log');
+container.provide(log, () => console.log);
+```
+
+### Defining Decorators 🔧
+
+You can register a decorator using the `decorate` method:
+
+```javascript
 const logging = (log) => (fn) => (...args) => {
-  log(fn.name, ...args);
+  log(`Calling ${fn.name}`, ...args);
   return fn(...args);
 };
-container.decorate(converse, container.depend([log], logging));
+container.decorate(log, container.depend([log], logging));
+```
 
-// Resolve the 'converse' extension point
+### Defining Aggregators 🔍
+
+You can register an aggregator using the `aggregate` method:
+
+```javascript
+const converse = Symbol('converse');
+const aggregator = (providers) => (messages) =>
+  providers.map(provider => provider()(messages)).join(' | ');
+container.aggregate(converse, () => aggregator);
+```
+
+### Resolving Dependencies 🔮
+
+You can resolve a provider, decorator, or aggregator using the `resolve` method:
+
+```javascript
+const logFn = container.resolve(log);
+logFn('Hello, Hierophant!');
+
 const converseFn = container.resolve(converse);
-console.log(converseFn(['Hello', 'World']));
+const result = converseFn(['Hello', 'World']);
+```
+
+### Composing Functionality 🧠
+
+You can use the `depend` method to create a function that resolves and injects dependencies:
+
+```javascript
+const chatbot = container.depend([log, converse], (logger, converseFn) => (messages) => {
+  logger(messages);
+  return converseFn(messages);
+});
+chatbot(['Hello', 'World']);
+```
+
+### Installing Providers, Decorators, and Aggregators 🔧
+
+You can install a set of providers, decorators, and aggregators using the `install` method:
+
+```javascript
+container.install({
+  providers: [
+    { symbol: log, dependencies: [], factory: () => console.log },
+    { symbol: converse, dependencies: [log], factory: (logger) => (messages) => {
+      logger(messages);
+      return `I don't know what you said, but there were ${messages.length} messages.`;
+    }}
+  ],
+  decorators: [
+    { symbol: converse, dependencies: [log], factory: (logger) => (fn) => (...args) => {
+      logger(`Calling wrapped fn`, ...args);
+      return fn(...args);
+    }}
+  ],
+  aggregators: [
+    { symbol: converse, dependencies: [converse], factory: (providers) => (messages) => {
+      return providers.map(provider => provider()(messages)).join(' | ');
+    }}
+  ]
+});
 ```
 
 ## Contributing 🦄
