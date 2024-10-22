@@ -49,7 +49,7 @@ describe('Hierophant', () => {
     }));
 
     const logging = (log) => (fn) => (...args) => {
-      log(`Calling ${fn.name}`, ...args);
+      log(`Calling wrapped fn`, ...args);
       return fn(...args);
     };
     container.decorate(converse, container.depend([log], logging));
@@ -58,7 +58,7 @@ describe('Hierophant', () => {
     const result = converseFn(['Hello', 'World']);
 
     expect(console.log.callCount).to.eq(2);
-    expect(console.log.firstCall.args).to.deep.eq(["Calling anonymous", ['Hello', 'World']]);
+    expect(console.log.firstCall.args).to.deep.eq(["Calling wrapped fn", ['Hello', 'World']]);
     expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
     expect(result).to.equal("I don't know what you said, but there were 2 messages.");
   });

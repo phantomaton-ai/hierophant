@@ -35,7 +35,7 @@ class Hierophant {
     const aggregate = this.aggregators[symbol];
     const aggregated = aggregate(this.providers[symbol]);
     return this.decorators[symbol].reduce(
-      (fn, decorate) => decorate(fn),
+      (fn, decorate) => decorate()(fn),
       aggregated
     );
   }
