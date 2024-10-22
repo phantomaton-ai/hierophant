@@ -93,7 +93,7 @@ const chatbot = container.depend([log, converse], (logger, converseFn) => (messa
 chatbot(['Hello', 'World']);
 ```
 
-### Installing Providers, Decorators, and Aggregators 🔧
+### Installing Providers, Decorators, and Aggregators ⚙️
 
 You can install a set of providers, decorators, and aggregators using the `install` method:
 
