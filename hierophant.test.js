@@ -81,4 +81,40 @@ describe('Hierophant', () => {
 
     expect(result).to.equal("I don't know what you said, but there were 2 messages. | The last message was World.");
   });
+
+  it('should allow installing providers, decorators, and aggregators', () => {
+    const container = hierophant();
+
+    container.install({
+      providers: [
+        { symbol: log, dependencies: [], factory: () => (...args) => console.log(...args) },
+        { symbol: converse, dependencies: [log], factory: (logger) => (messages) => {
+          logger(messages);
+          return `I don't know what you said, but there were ${messages.length} messages.`;
+        }},
+        { symbol: converse, dependencies: [], factory: () => (messages) => {
+          return `The last message was ${messages[messages.length - 1]}.`;
+        }}
+      ],
+      decorators: [
+        { symbol: converse, dependencies: [log], factory: (logger) => (fn) => (...args) => {
+          logger(`Calling wrapped fn`, ...args);
+          return fn(...args);
+        }}
+      ],
+      aggregators: [
+        { symbol: converse, dependencies: [], factory: () => (providers) => {
+          return (messages) => providers.map(provider => provider()(messages)).join(' | ');
+        }}
+      ]
+    });
+
+    const converseFn = container.resolve(converse);
+    const result = converseFn(['Hello', 'World']);
+
+    expect(console.log.callCount).to.eq(2);
+    expect(console.log.firstCall.args).to.deep.eq(["Calling wrapped fn", ['Hello', 'World']]);
+    expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
+    expect(result).to.equal("I don't know what you said, but there were 2 messages. | The last message was World.");
+  });
 });
