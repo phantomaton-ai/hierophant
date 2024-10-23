@@ -12,9 +12,6 @@ class Hierophant {
 
   resolve(symbol) {
     const providers = this.providers.get(symbol) || [];
-    if (providers.length === 0) {
-      throw new Error(`No providers for ${symbol.description}`);
-    }
     return providers.map(p => p()).flat();
   }
 
