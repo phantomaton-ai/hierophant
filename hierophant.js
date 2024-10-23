@@ -1,61 +1,27 @@
-const one = symbol => () => providers => {
-  if (providers.length < 1) throw new Error(`No providers for ${symbol.description}`);
-  if (providers.length > 1) throw new Error(`Too many providers for ${symbol.description}`);
-  return providers[0]();
-};
-
 class Hierophant {
   constructor() {
-    ['providers', 'aggregators', 'decorators'].forEach(k => this[k] = {});
-  }
-
-  learn(symbol) {
-    this.providers[symbol] = this.providers[symbol] || [];
-    this.aggregators[symbol] = this.aggregators[symbol] || one(symbol);
-    this.decorators[symbol] = this.decorators[symbol] || [];
+    this.providers = new Map();
   }
 
   provide(symbol, provider) {
-    this.learn(symbol);
-    this.providers[symbol].push(provider);
-  }
-
-  decorate(symbol, decorator) {
-    this.learn(symbol);
-    this.decorators[symbol].push(decorator);
-  }
-
-  aggregate(symbol, aggregator) {
-    this.learn(symbol);
-    this.aggregators[symbol] = aggregator;
+    if (!this.providers.has(symbol)) {
+      this.providers.set(symbol, []);
+    }
+    this.providers.get(symbol).push(provider);
   }
 
   resolve(symbol) {
-    this.learn(symbol);
-    const aggregate = this.aggregators[symbol]();
-    const aggregated = aggregate(this.providers[symbol]);
-    return this.decorators[symbol].reduce(
-      (fn, decorate) => decorate()(fn),
-      aggregated
-    );
+    const providers = this.providers.get(symbol) || [];
+    if (providers.length === 0) {
+      throw new Error(`No providers for ${symbol.description}`);
+    }
+    return providers.map(p => p()).flat();
   }
 
-  depend(symbols, factory) {
-    return () => {
-      const dependencies = symbols.map(symbol => this.resolve(symbol));
-      return factory(...dependencies);
-    };
-  }
-
-  install({ providers = [], aggregators = [], decorators = []}) {
-    providers.forEach(({ symbol, dependencies, factory }) => {
-      this.provide(symbol, this.depend(dependencies, factory));
-    });
-    aggregators.forEach(({ symbol, dependencies, factory }) => {
-      this.aggregate(symbol, this.depend(dependencies, factory));
-    });
-    decorators.forEach(({ symbol, dependencies, factory }) => {
-      this.decorate(symbol, this.depend(dependencies, factory));
+  install(component) {
+    this.provide(component.symbol, () => {
+      const deps = component.dependencies.map(dep => this.resolve(dep));
+      return component.factory(...deps);
     });
   }
 }
