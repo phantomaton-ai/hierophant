@@ -1,123 +1,101 @@
 # Hierophant 🕍
 
-Hierophant is the dependency injection container for the Phantomaton AI. It serves as the central hub for managing the various components and services used across Phantomaton's ecosystem.
+Hierophant is a minimalist dependency injection container for the Phantomaton AI, using smart identifiers called Sigils to manage component composition.
 
 ## Purpose 🧠
 
-Phantomaton, as an AI assistant, requires a robust and flexible way to manage the dependencies between its different components and services. Hierophant is designed to provide this functionality, allowing Phantomaton to:
+Phantomaton needs a flexible way to manage dependencies between its various components and services. Hierophant provides this through two key abstractions:
 
-- Easily swap out different implementations of core services (e.g., language models, image generators, etc.)
-- Compose reusable abilities and experiences across various Phantomaton agents
-- Support multiple interfaces and interaction modalities (e.g., chat, CLI, REST API)
-- Extend the core functionality through a plugin system
+1. A minimal container that handles basic dependency resolution
+2. Smart identifiers (Sigils) that encode their own composition patterns
 
-By abstracting the dependency management into Hierophant, Phantomaton can focus on building innovative and engaging experiences, without getting bogged down in the complexity of wiring up its internal components.
+This separation allows Phantomaton to focus on building innovative experiences while maintaining clean architectural boundaries.
 
 ## Core Concepts 🔮
 
-Hierophant provides the following core functionality:
+### Sigils
 
-1. **Providers**: Specific implementations that can be swapped in and out.
-2. **Aggregators**: Strategies for dealing with multiple providers (e.g., raising errors for singletons, fan-out/fan-in for combining results).
-3. **Decorators**: Wrappers that modify the behavior of other components by intercepting calls and potentially modifying inputs and outputs.
+Sigils are smart identifiers that know how to compose their implementations. Each Sigil defines:
 
-These concepts are defined and registered using `Symbol`s as identifiers, providing a flexible and extensible architecture.
+- An implementation point (`impl`) where providers register
+- A resolution point (`resolve`) where dependents connect
+- A resolution strategy that determines how implementations compose
+
+Basic Sigils expect exactly one implementation, while Composite Sigils support decoration and aggregation patterns.
+
+### Container
+
+The container is deliberately minimal, providing just three operations:
+
+- `provide`: Register a provider for a symbol
+- `resolve`: Resolve all providers for a symbol
+- `install`: Register a component with dependencies
 
 ## Usage 🪄
 
-To use Hierophant, first import the `hierophant` function:
+First, define your Sigils:
 
 ```javascript
-import hierophant from 'hierophant';
+// A basic logging facility
+const log = new Sigil('log');
+
+// A composite conversation facility
+const converse = new Composite('converse');
 ```
 
-Then, create a new Hierophant instance:
+Then create a container and install components:
 
 ```javascript
 const container = hierophant();
-```
 
-### Defining Providers 🌟
+// Install resolvers
+container.install(log.resolver());
+container.install(converse.resolver());
 
-You can register a provider using the `provide` method:
+// Install a basic provider
+container.install(log.provider([], () => console.log));
 
-```javascript
-const log = Symbol('log');
-container.provide(log, () => console.log);
-```
-
-### Defining Decorators 🔧
-
-You can register a decorator using the `decorate` method:
-
-```javascript
-const logging = (log) => (fn) => (...args) => {
-  log(`Calling ${fn.name}`, ...args);
-  return fn(...args);
-};
-container.decorate(log, container.depend([log], logging));
-```
-
-### Defining Aggregators 🔍
-
-You can register an aggregator using the `aggregate` method:
-
-```javascript
-const converse = Symbol('converse');
-const aggregator = (providers) => (messages) =>
-  providers.map(provider => provider()(messages)).join(' | ');
-container.aggregate(converse, () => aggregator);
-```
-
-### Resolving Dependencies 🔮
-
-You can resolve a provider, decorator, or aggregator using the `resolve` method:
-
-```javascript
-const logFn = container.resolve(log);
-logFn('Hello, Hierophant!');
-
-const converseFn = container.resolve(converse);
-const result = converseFn(['Hello', 'World']);
-```
-
-### Composing Functionality 🧠
-
-You can use the `depend` method to create a function that resolves and injects dependencies:
-
-```javascript
-const chatbot = container.depend([log, converse], (logger, converseFn) => (messages) => {
+// Install a provider with dependencies
+container.install(converse.provider([log.resolve], ([logger]) => (messages) => {
   logger(messages);
-  return converseFn(messages);
-});
-chatbot(['Hello', 'World']);
+  return `Got ${messages.length} messages`;
+}));
+
+// Add a decorator
+container.install(converse.decorator([log.resolve], ([logger]) => (fn) => (...args) => {
+  logger('Calling conversation');
+  return fn(...args);
+}));
+
+// Add an aggregator
+container.install(converse.aggregator([], () => (impls) => (messages) =>
+  impls.map(impl => impl(messages)).join(' | ')
+));
+
+// Use the composed functionality
+const [converseFn] = container.resolve(converse.resolve);
+converseFn(['Hello!']); // Logs then returns response
 ```
 
-### Installing Providers, Decorators, and Aggregators ⚙️
+### Creating New Sigil Types 🌟
 
-You can install a set of providers, decorators, and aggregators using the `install` method:
+You can create new Sigil types by extending the base class:
 
 ```javascript
-container.install({
-  providers: [
-    { symbol: log, dependencies: [], factory: () => console.log },
-    { symbol: converse, dependencies: [log], factory: (logger) => (messages) => {
-      logger(messages);
-      return `I don't know what you said, but there were ${messages.length} messages.`;
-    }}
-  ],
-  decorators: [
-    { symbol: converse, dependencies: [log], factory: (logger) => (fn) => (...args) => {
-      logger(`Calling wrapped fn`, ...args);
-      return fn(...args);
-    }}
-  ],
-  aggregators: [
-    { symbol: converse, dependencies: [converse], factory: (providers) => (messages) => {
-      return providers.map(provider => provider()(messages)).join(' | ');
-    }}
-  ]
-});
+class Singleton extends Sigil {
+  resolver() {
+    return {
+      symbol: this.resolve,
+      dependencies: [this.impl],
+      factory: (impls) => {
+        if (impls.length !== 1) {
+          throw new Error(`Expected exactly one implementation for ${this.name}`);
+        }
+        return impls[0];
+      }
+    };
+  }
+}
 ```
 
 ## Contributing 🦄
