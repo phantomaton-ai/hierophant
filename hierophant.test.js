@@ -52,7 +52,7 @@ class Composite extends Sigil {
     return {
       symbol: this.resolve,
       dependencies: [this.impl, this.decorate, this.aggregate],
-      factory: (impls, decorators, aggregator) => {
+      factory: (impls, decorators = [], [aggregator]) => {
         const base = aggregator ? aggregator(impls) : impls[0];
         return decorators.reduce((fn, decorate) => decorate(fn), base);
       }
