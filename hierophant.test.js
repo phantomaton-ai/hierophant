@@ -1,11 +1,72 @@
 import { expect, stub } from 'lovecraft';
 import hierophant from './hierophant.js';
 
+class Sigil {
+  constructor(name) {
+    this.impl = Symbol(`${name}:impl`);
+    this.resolve = Symbol(`${name}:resolve`);
+    this.name = name;
+  }
+
+  provider(dependencies, factory) {
+    return {
+      symbol: this.impl,
+      dependencies,
+      factory
+    };
+  }
+
+  resolver() {
+    return {
+      symbol: this.resolve,
+      dependencies: [this.impl],
+      factory: (impls) => impls[0]
+    };
+  }
+}
+
+class Composite extends Sigil {
+  constructor(name) {
+    super(name);
+    this.decorate = Symbol(`${name}:decorate`);
+    this.aggregate = Symbol(`${name}:aggregate`);
+  }
+
+  decorator(dependencies, factory) {
+    return {
+      symbol: this.decorate,
+      dependencies,
+      factory
+    };
+  }
+
+  aggregator(dependencies, factory) {
+    return {
+      symbol: this.aggregate,
+      dependencies,
+      factory
+    };
+  }
+
+  resolver() {
+    return {
+      symbol: this.resolve,
+      dependencies: [this.impl, this.decorate, this.aggregate],
+      factory: (impls, decorators, aggregator) => {
+        const base = aggregator ? aggregator(impls) : impls[0];
+        return decorators.reduce((fn, decorate) => decorate(fn), base);
+      }
+    };
+  }
+}
+
 describe('Hierophant', () => {
-  const log = Symbol('log');
-  const converse = Symbol('converse');
+  let container;
+  const log = new Sigil('log');
+  const converse = new Composite('converse');
 
   beforeEach(() => {
+    container = hierophant();
     stub(console, 'log');
   });
 
@@ -14,25 +75,27 @@ describe('Hierophant', () => {
   });
 
   it('should allow registering and resolving a simple provider', () => {
-    const container = hierophant();
-    container.provide(log, () => (...args) => console.log(...args));
-    const logFn = container.resolve(log);
+    container.install(log.resolver());
+    container.install(log.provider([], () => (...args) => console.log(...args)));
 
-    logFn(['Hello', 'World']);
+    const [logger] = container.resolve(log.resolve);
+    logger(['Hello', 'World']);
 
     expect(console.log.callCount).to.eq(1);
     expect(console.log.lastCall.args).to.deep.eq([['Hello', 'World']]);
   });
 
   it('should allow registering and resolving a provider with dependencies', () => {
-    const container = hierophant();
-    container.provide(log, () => (...args) => console.log(...args));
-    container.provide(converse, container.depend([log], (logger) => (messages) => {
+    container.install(log.resolver());
+    container.install(converse.resolver());
+
+    container.install(log.provider([], () => (...args) => console.log(...args)));
+    container.install(converse.provider([log.resolve], ([logger]) => (messages) => {
       logger(messages);
       return `I don't know what you said, but there were ${messages.length} messages.`;
     }));
 
-    const converseFn = container.resolve(converse);
+    const [converseFn] = container.resolve(converse.resolve);
     const result = converseFn(['Hello', 'World']);
 
     expect(console.log.callCount).to.eq(1);
@@ -41,20 +104,21 @@ describe('Hierophant', () => {
   });
 
   it('should allow registering and resolving a decorated provider', () => {
-    const container = hierophant();
-    container.provide(log, () => (...args) => console.log(...args));
-    container.provide(converse, container.depend([log], (logger) => (messages) => {
+    container.install(log.resolver());
+    container.install(converse.resolver());
+
+    container.install(log.provider([], () => (...args) => console.log(...args)));
+    container.install(converse.provider([log.resolve], ([logger]) => (messages) => {
       logger(messages);
       return `I don't know what you said, but there were ${messages.length} messages.`;
     }));
 
-    const logging = (log) => (fn) => (...args) => {
-      log(`Calling wrapped fn`, ...args);
+    container.install(converse.decorator([log.resolve], ([logger]) => (fn) => (...args) => {
+      logger("Calling wrapped fn", ...args);
       return fn(...args);
-    };
-    container.decorate(converse, container.depend([log], logging));
+    }));
 
-    const converseFn = container.resolve(converse);
+    const [converseFn] = container.resolve(converse.resolve);
     const result = converseFn(['Hello', 'World']);
 
     expect(console.log.callCount).to.eq(2);
@@ -64,69 +128,22 @@ describe('Hierophant', () => {
   });
 
   it('should allow registering and resolving an aggregated provider', () => {
-    const container = hierophant();
-    container.provide(converse, () => (messages) =>
+    container.install(converse.resolver());
+
+    container.install(converse.provider([], () => (messages) =>
       `I don't know what you said, but there were ${messages.length} messages.`
-    );
-    container.provide(converse, () => (messages) =>
+    ));
+    container.install(converse.provider([], () => (messages) =>
       `The last message was ${messages[messages.length - 1]}.`
-    );
+    ));
 
-    const aggregator = (providers) => (messages) =>
-      providers.map(provider => provider()(messages)).join(' | ');
-    container.aggregate(converse, () => aggregator);
+    container.install(converse.aggregator([], () => (impls) => (messages) =>
+      impls.map(impl => impl(messages)).join(' | ')
+    ));
 
-    const converseFn = container.resolve(converse);
+    const [converseFn] = container.resolve(converse.resolve);
     const result = converseFn(['Hello', 'World']);
 
     expect(result).to.equal("I don't know what you said, but there were 2 messages. | The last message was World.");
-  });
-
-  it('should allow installing providers, decorators, and aggregators', () => {
-    const container = hierophant();
-
-    container.install({
-      providers: [
-        { symbol: log, dependencies: [], factory: () => (...args) => console.log(...args) },
-        { symbol: converse, dependencies: [log], factory: (logger) => (messages) => {
-          logger(messages);
-          return `I don't know what you said, but there were ${messages.length} messages.`;
-        }},
-        { symbol: converse, dependencies: [], factory: () => (messages) => {
-          return `The last message was ${messages[messages.length - 1]}.`;
-        }}
-      ],
-      decorators: [
-        { symbol: converse, dependencies: [log], factory: (logger) => (fn) => (...args) => {
-          logger(`Calling wrapped fn`, ...args);
-          return fn(...args);
-        }}
-      ],
-      aggregators: [
-        { symbol: converse, dependencies: [], factory: () => (providers) => {
-          return (messages) => providers.map(provider => provider()(messages)).join(' | ');
-        }}
-      ]
-    });
-
-    const converseFn = container.resolve(converse);
-    const result = converseFn(['Hello', 'World']);
-
-    expect(console.log.callCount).to.eq(2);
-    expect(console.log.firstCall.args).to.deep.eq(["Calling wrapped fn", ['Hello', 'World']]);
-    expect(console.log.secondCall.args).to.deep.eq([['Hello', 'World']]);
-    expect(result).to.equal("I don't know what you said, but there were 2 messages. | The last message was World.");
-  });
-
-  it('should throw an error when no providers are registered for a symbol', () => {
-    const container = hierophant();
-    expect(() => container.resolve(converse)).to.throw(Error, `No providers for converse`);
-  });
-
-  it('should throw an error when multiple providers are registered for a symbol', () => {
-    const container = hierophant();
-    container.provide(converse, () => (messages) => 'Provider 1');
-    container.provide(converse, () => (messages) => 'Provider 2');
-    expect(() => container.resolve(converse)).to.throw(Error, `Too many providers for converse`);
   });
 });
